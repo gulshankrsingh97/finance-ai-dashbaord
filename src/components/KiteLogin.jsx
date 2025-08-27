@@ -61,22 +61,25 @@ export default function KiteLogin({ onAccessToken }) {
           display: "inline-flex",
           alignItems: "center",
           gap: 9,
-          fontWeight: 600,
-          fontSize: "1.12em",
-          letterSpacing: "0.01em",
-          border: "none",
+          fontWeight: 700,
+          fontSize: "1.02rem",
+          letterSpacing: "0.02em",
+          border: "1px solid #0ea5e966",
           outline: "none",
-          padding: "13px 32px",
-          borderRadius: 9,
-          color: "#fff",
-          background: "linear-gradient(90deg,#0ea5e9 60%,#2563eb 100%)",
-          boxShadow: "0 2px 16px #1e293b22",
+          padding: "12px 20px",
+          borderRadius: 10,
+          color: !API_KEY ? "#94a3b8" : "#e6f6ff",
+          background: !API_KEY ? "#0b1220" : "linear-gradient(90deg,#0ea5e9 60%,#2563eb 100%)",
+          boxShadow: !API_KEY ? "inset 0 0 0 1px #0ea5e922" : "0 2px 16px #0ea5e933",
+          opacity: !API_KEY ? 0.8 : 1,
           cursor: !API_KEY ? "not-allowed" : "pointer",
-          transition: "background .16s"
+          transition: "all .16s ease"
         }}
+        onMouseEnter={(e)=>{ if(API_KEY){ e.currentTarget.style.boxShadow='0 4px 22px #0ea5e955'; } }}
+        onMouseLeave={(e)=>{ if(API_KEY){ e.currentTarget.style.boxShadow='0 2px 16px #0ea5e933'; } }}
       >
         <MdLogin size={22} style={{marginRight:2, marginBottom: -2}} />
-        <span>Login with Zerodha</span>
+        <span>Login</span>
       </button>
       {!API_KEY && (
         <div style={{ color: "orange", marginTop: 8 }}>

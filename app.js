@@ -382,12 +382,16 @@ class FinanceDashboard {
     initializeAssistant() {
         this.messageHistory = [];
         this.currentIntent = 'chat';
+        this.aiBridgeUrl = 'http://localhost:3001';
+        this.aiAvailable = false;
         
         // Set initial status
-        document.getElementById('aiStatus').textContent = 'Ready';
+        document.getElementById('aiStatus').textContent = 'Initializing...';
         
         // Check for Chrome extension
         this.checkChromeExtension();
+        // Probe local AI bridge availability
+        this.probeLocalAI();
     }
     
     async checkChromeExtension() {
@@ -402,6 +406,53 @@ class FinanceDashboard {
         } catch (error) {
             document.getElementById('aiStatus').textContent = 'Ready';
         }
+    }
+    
+    async probeLocalAI() {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 1500);
+            const resp = await fetch(`${this.aiBridgeUrl}/health`, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (resp.ok) {
+                this.aiAvailable = true;
+                document.getElementById('aiStatus').textContent = 'Connected';
+                return true;
+            }
+        } catch (e) {
+            // ignore
+        }
+        this.aiAvailable = false;
+        const current = document.getElementById('aiStatus');
+        if (current && current.textContent === 'Initializing...') {
+            current.textContent = 'Local Mode';
+        }
+        return false;
+    }
+    
+    async chatWithLocalAI() {
+        // Build OpenAI-style messages from history
+        const history = this.messageHistory.map(m => ({
+            role: m.sender === 'assistant' ? 'assistant' : 'user',
+            content: typeof m.content === 'string' ? m.content : String(m.content)
+        }));
+        const resp = await fetch(`${this.aiBridgeUrl}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'openai/gpt-oss-20b',
+                messages: history,
+                temperature: 0.7,
+                max_tokens: -1,
+                stream: false
+            })
+        });
+        if (!resp.ok) {
+            const text = await resp.text();
+            throw new Error(`AI bridge error ${resp.status}: ${text}`);
+        }
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content || '';
     }
     
     async sendMessage() {
@@ -508,12 +559,24 @@ class FinanceDashboard {
     }
     
     async handleChatIntent(message) {
-        // Analyze message for market-related queries
+        // Prefer local AI if available
+        if (this.aiAvailable) {
+            try {
+                // Ensure latest user message is in history before calling
+                const last = this.messageHistory[this.messageHistory.length - 1];
+                if (!last || last.sender !== 'user') {
+                    this.messageHistory.push({ sender: 'user', content: message, timestamp: new Date() });
+                }
+                const aiReply = await this.chatWithLocalAI();
+                return aiReply || this.generateChatResponse(message);
+            } catch (e) {
+                // Fall through to heuristic responses
+            }
+        }
+        // Heuristic responses
         if (this.isMarketQuery(message)) {
             return this.generateMarketResponse(message);
         }
-        
-        // General chat response
         return this.generateChatResponse(message);
     }
     
@@ -637,11 +700,12 @@ class FinanceDashboard {
         button.disabled = true;
         
         try {
-            // Simulate connection test
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            this.addMessageToChat('assistant', '✅ **Connection Test Successful!**\n\nI\'m fully operational and ready to assist with:\n• Market data analysis\n• Financial searches\n• Website navigation\n• General financial queries\n\nAll systems are go! 🚀');
-            document.getElementById('aiStatus').textContent = 'Connected';
+            const ok = await this.probeLocalAI();
+            if (ok) {
+                this.addMessageToChat('assistant', '✅ Local AI bridge is reachable at ' + this.aiBridgeUrl + '. I can answer using the local model.');
+            } else {
+                this.addMessageToChat('assistant', 'ℹ️ Local AI bridge not reachable. I will use built-in heuristic responses. You can start the bridge with: node ai-bridge.js');
+            }
         } catch (error) {
             this.addMessageToChat('assistant', '❌ Connection test encountered an issue, but I\'m still operating in local mode and can help with market analysis and basic queries.');
             document.getElementById('aiStatus').textContent = 'Local Mode';
