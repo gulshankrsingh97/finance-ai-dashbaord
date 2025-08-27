@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MdChat } from 'react-icons/md';
-import { FiSearch } from 'react-icons/fi';
+import { FiSearch, FiSettings } from 'react-icons/fi';
 import { FaCompass } from 'react-icons/fa';
 import { FaRobot } from 'react-icons/fa';
 import { MdPerson } from 'react-icons/md';
@@ -11,6 +11,7 @@ function AssistantPanel() {
   const [modelProvider, setModelProvider] = useState(() => {
     return localStorage.getItem('ai_model_provider') || 'local';
   });
+  const [testResult, setTestResult] = useState('');
   const [messages, setMessages] = useState([
     {
       sender: 'assistant',
@@ -30,6 +31,24 @@ function AssistantPanel() {
   const [intent, setIntent] = useState('chat');
   const [isTyping, setIsTyping] = useState(false);
 
+  const testConnection = async () => {
+    try {
+      if (modelProvider === 'cloud') {
+        setTestResult('Cloud test: placeholder. Configure cloud backend to enable live test.');
+        return;
+      }
+      const resp = await fetch('http://localhost:3001/health');
+      if (resp.ok) {
+        const data = await resp.json().catch(()=>({}));
+        setTestResult('✅ Local AI reachable: ' + (data?.ai_backend || 'ok'));
+      } else {
+        setTestResult('❌ Local AI not reachable: HTTP ' + resp.status);
+      }
+    } catch (e) {
+      setTestResult('❌ Local AI test error: ' + (e?.message || String(e)));
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = { sender: 'user', content: input };
@@ -43,7 +62,7 @@ function AssistantPanel() {
         role: m.sender === 'assistant' ? 'assistant' : 'user',
         content: m.content
       }));
-      const aiResult = await chatWithLocalAI(historyForApi);
+      const aiResult = await chatWithLocalAI(historyForApi, { model: modelProvider==='cloud' ? 'gemini-2.5' : 'openai-oss' });
       setMessages(prev => [
         ...prev,
         { sender: 'assistant', content: aiResult.content }
@@ -64,8 +83,8 @@ function AssistantPanel() {
         <h2 style={{margin:0,fontWeight:700,fontSize:'1.25em',letterSpacing:'0.01em'}}>FinanceGPT</h2>
         <div className="assistant-controls" style={{marginLeft:'auto', display:'flex', gap:8}}>
                   <button className="btn btn--sm btn--secondary" onClick={() => setMessages([])}>Clear</button>
-                  <button className="btn btn--sm btn--secondary" title="Settings" onClick={() => setShowSettings(true)}>
-                    ⚙️ Settings
+                  <button className="btn btn--sm btn--secondary" title="Settings" onClick={() => setShowSettings(true)} style={{display:'inline-flex',alignItems:'center',gap:6}}>
+                    <FiSettings size={16}/> Settings
                   </button>
                 </div>
       </div>
@@ -101,7 +120,7 @@ function AssistantPanel() {
                         url: block.source
                       };
                     }
-                  } catch (_err) {
+                  } catch { 
                     openAction = {
                       label: jsonCmdMatch[1] && jsonCmdMatch[1].toLowerCase().includes('search') ? 'Search and open' : 'Open in new tab',
                       url: jsonCmdMatch[2]
@@ -249,7 +268,7 @@ function AssistantPanel() {
       <div className="assistant-status">
         <div className="status-item">
           <span className="status-label">Model:</span>
-          <span className="status-value" id="currentModel">DeepSeek R1</span>
+          <span className="status-value" id="currentModel">{modelProvider==='cloud' ? 'Gemini 2.5 (Cloud)' : 'Open AI OSS (Local)'}</span>
         </div>
         <div className="status-item">
           <span className="status-label">Connection:</span>
@@ -298,6 +317,13 @@ function AssistantPanel() {
                   <span style={{fontSize:12,color:'#94a3b8'}}>Cloud</span>
                 </div>
               </div>
+              <div className="form-group" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <button className="btn btn--outline btn--sm" onClick={testConnection}>
+                  Test {modelProvider==='cloud' ? 'Cloud' : 'Local'}
+                </button>
+                <span style={{fontSize:12,color:'#9ca3af',marginLeft:8}}>{testResult}</span>
+              </div>
+
               <div className="form-group" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <button className="btn btn--secondary btn--sm" onClick={()=> setShowSettings(false)}>Back to Chat</button>
                 <button className="btn btn--primary btn--sm" onClick={()=>{
