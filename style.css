@@ -988,6 +988,38 @@ select.form-control {
   min-height: 0;
 }
 
+/* Rich content inside chat messages */
+.message-content table.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 4px 0;
+}
+.message-content table.md-table th,
+.message-content table.md-table td {
+  border: 1px solid #1f2a3a;
+  padding: 6px 8px;
+  text-align: left;
+}
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5 {
+  margin: 6px 0 4px 0;
+}
+.message-content pre.code-block {
+  background: #0b1220;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  overflow: auto;
+}
+.message-content code {
+  background: rgba(14,165,233,0.12);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;

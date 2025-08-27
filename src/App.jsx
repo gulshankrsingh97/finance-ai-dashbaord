@@ -289,18 +289,6 @@ function App() {
     setAssistantPanelWidth(newW);
   };
 
-  React.useEffect(() => {
-    const move = (e) => handleDrag(e);
-    const up = () => handleDragEnd();
-    if (isDragging.current) {
-      window.addEventListener("mousemove", move);
-      window.addEventListener("mouseup", up);
-    }
-    return () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-    };
-  }, [isDragging.current]);
 
   return (
     <div className="dashboard">
