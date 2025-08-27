@@ -1,0 +1,81 @@
+.news-banner {
+  width: 100%;
+  background: linear-gradient(90deg, #20232a 70%, #0ea5e9 100%);
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.96rem;
+  padding: 0.21em 0.7em 0.21em 1.0em;
+  border-radius: 9px 9px 0 0;
+  box-shadow: 0 2px 16px rgba(24, 27, 39, 0.09);
+  margin-bottom: 0;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 9;
+}
+
+.news-heading {
+  font-weight: bold;
+  color: #fbbf24;
+  font-size: 1.05em;
+  margin-bottom: 0.3em;
+  text-shadow: 1px 1px 5px #23272f66;
+}
+
+.news-cards-row { 
+  margin-bottom: 0px; 
+}
+
+.news-cards-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.85em;
+  align-items: flex-start;
+}
+
+.news-card {
+  background: rgba(30, 41, 59, 0.89);
+  color: #f1f5f9;
+  font-size: 0.97em;
+  border-radius: 7px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  min-width: 120px;
+  padding: 0.22em 0.45em 0.18em 0.5em;
+  position: relative;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  animation: fadeUp 1.2s;
+}
+
+.news-bullet {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 0.85em;
+  background: #0ea5e9;
+  box-shadow: 0 0 5px #0284c7a5;
+}
+
+.news-card-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+
+/* Animated fade-in/fade-up for cycling */
+.fade-news {
+  animation: fadeUp 1s;
+}
+
+@keyframes fadeUp {
+  0%   { opacity: 0; transform: translateY(18px);}
+  100% { opacity: 1; transform: translateY(0);}
+}
