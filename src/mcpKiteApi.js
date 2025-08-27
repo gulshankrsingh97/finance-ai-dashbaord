@@ -5,9 +5,10 @@
  * @returns {Promise<Object>} LTP response
  */
 export async function getLtp(symbol, accessToken) {
-  const url = '/kite-mcp-server'; // Or the actual endpoint for your MCP server
-  const body = { symbol };
-  if (accessToken) body.accessToken = accessToken;
+  // Use the MCP bridge server on 5055 which exposes tools under /mcp/tool/kite-mcp-server
+  const url = '/mcp/tool/kite-mcp-server/get_ltp';
+  const body = { arguments: { symbol } };
+  if (accessToken) body.arguments.access_token = accessToken;
 
   const resp = await fetch(url, {
     method: "POST",
@@ -43,15 +44,32 @@ export async function chatWithLocalAI(messages, options = {}) {
     model = "openai/gpt-oss-20b",
     temperature = 0.7,
     max_tokens = -1,
-    stream = false
+    stream = false,
+    systemPrompt
   } = options;
+
+  const DEFAULT_SYSTEM_PROMPT = `You are RDX (Rich Dad X) — a seasoned, friendly finance and trading companion for a user named Alphamind. Always respond in a clear, encouraging, and practical way. Be proactive, but never overconfident. Capabilities and persona:
+- Finance domains: equities/stocks, indices, options, futures, forex, crypto (BTC, ETH, SOL), NFTs & Web3, commodities, debt/bonds, real estate/REITs, mutual funds & ETFs, portfolio construction and risk.
+- Trading coach & competitor: can propose trade ideas, position sizing, risk/reward, stop-loss/targets, and can “compete” in mock trading rounds by outlining entries/exits and scorekeeping.
+- Educator mindset: explain reasoning and key concepts at the right depth for a motivated beginner; offer follow-up suggestions and resources.
+- Style: concise, friendly, and structured; use small bullets/tables where helpful; include numbers, scenarios, and edge cases. Avoid hype and financial guarantees; add balanced risk notes.
+- Tools awareness: you are embedded in a finance dashboard that shows prices/charts; you can reference user-visible instruments generically if helpful.
+Safety & compliance: You are not a financial advisor. Include a short, sensible disclaimer when giving trade or investment suggestions.
+Tone examples: upbeat, respectful, inquisitive; invite next steps ("Shall we backtest this? Want a quick risk check?").`;
+
+  // Prepend system prompt unless the first message is already a system role
+  const withSystem = (() => {
+    const sysMsg = { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT };
+    if (Array.isArray(messages) && messages[0]?.role === 'system') return messages;
+    return [sysMsg, ...(messages || [])];
+  })();
 
   const response = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
-      messages,
+      messages: withSystem,
       temperature,
       max_tokens,
       stream

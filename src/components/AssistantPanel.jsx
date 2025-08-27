@@ -7,6 +7,8 @@ import { MdPerson } from 'react-icons/md';
 import { chatWithLocalAI } from '../mcpKiteApi.js';
 
 function AssistantPanel() {
+  const chatRef = React.useRef(null);
+  const [llmStatus, setLlmStatus] = useState('unknown'); // 'unknown' | 'connected' | 'down'
   const [showSettings, setShowSettings] = useState(false);
   const [modelProvider, setModelProvider] = useState(() => {
     return localStorage.getItem('ai_model_provider') || 'local';
@@ -35,21 +37,34 @@ function AssistantPanel() {
     try {
       if (modelProvider === 'cloud') {
         setTestResult('Cloud test: placeholder. Configure cloud backend to enable live test.');
+        setLlmStatus('unknown');
         return;
       }
-      const resp = await fetch('http://localhost:3001/health');
+      const controller = new AbortController();
+      const timeout = setTimeout(()=>controller.abort(), 1500);
+      const resp = await fetch('http://localhost:3001/health', { signal: controller.signal });
+      clearTimeout(timeout);
       if (resp.ok) {
         const data = await resp.json().catch(()=>({}));
         setTestResult('✅ Local AI reachable: ' + (data?.ai_backend || 'ok'));
+        setLlmStatus('connected');
       } else {
         setTestResult('❌ Local AI not reachable: HTTP ' + resp.status);
+        setLlmStatus('down');
       }
     } catch (e) {
       setTestResult('❌ Local AI test error: ' + (e?.message || String(e)));
+      setLlmStatus('down');
     }
   };
 
+  React.useEffect(() => { testConnection(); /* initial probe */ }, []);
+
   const handleSend = async () => {
+      if (chatRef.current) {
+        // ensure input stays in view by scrolling to bottom before sending
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }
     if (!input.trim()) return;
     const userMsg = { sender: 'user', content: input };
     const newMessages = [...messages, userMsg];
@@ -74,6 +89,10 @@ function AssistantPanel() {
       ]);
     }
     setIsTyping(false);
+    // after receiving reply, scroll to bottom to keep the input visible
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
   };
 
   return (
@@ -81,17 +100,41 @@ function AssistantPanel() {
       <div className="assistant-header" style={{display:'flex',alignItems:'center',gap:10}}>
         <FaRobot style={{fontSize: 28, color:'#38bdf8', flexShrink:0}} />
         <h2 style={{margin:0,fontWeight:700,fontSize:'1.25em',letterSpacing:'0.01em'}}>FinanceGPT</h2>
+        {/* LLM connection pill */}
+        <button
+          onClick={() => testConnection()}
+          className="btn btn--sm"
+          title={llmStatus==='connected' ? 'LLM connected' : (llmStatus==='down' ? 'LLM down' : 'LLM status unknown')}
+          style={{
+            marginLeft: 8,
+            display:'inline-flex',alignItems:'center',justifyContent:'center',
+            padding:'4px',borderRadius:999,
+            width:18,height:18,
+            background: 'transparent',
+            border:'none'
+          }}
+        >
+          <span style={{
+            width:10,height:10,borderRadius:'50%',
+            background: llmStatus==='connected'? '#22c55e' : (llmStatus==='down' ? '#ef4444' : '#94a3b8'),
+            boxShadow: '0 0 0 3px rgba(0,0,0,0.06)'
+          }} />
+        </button>
         <div className="assistant-controls" style={{marginLeft:'auto', display:'flex', gap:8}}>
-                  <button className="btn btn--sm btn--secondary" onClick={() => setMessages([])}>Clear</button>
-                  <button className="btn btn--sm btn--secondary" title="Settings" onClick={() => setShowSettings(true)} style={{display:'inline-flex',alignItems:'center',gap:6}}>
-                    <FiSettings size={16}/> Settings
-                  </button>
-                </div>
+          <button className="btn btn--sm btn--secondary" onClick={() => setMessages([])}>Clear</button>
+          <button className="btn btn--sm btn--secondary" title="Settings" onClick={() => setShowSettings(true)} style={{display:'inline-flex',alignItems:'center',gap:6}}>
+            <FiSettings size={16}/> Settings
+          </button>
+        </div>
       </div>
 
-      <div className="assistant-content">
-        <div className="chat-messages" id="chatMessages">
+      <div className="assistant-content" style={{display:'flex',flexDirection:'column',height:'100%',minHeight:0}}>
+        <div className="chat-messages" id="chatMessages" ref={chatRef} style={{overflowY:'auto', flex:1, minHeight:0}}>
           {messages.map((msg, index) => {
+                      // auto-scroll to bottom when a new message renders
+                      if (index === messages.length - 1 && chatRef.current) {
+                        setTimeout(()=>{ chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 0);
+                      }
             const isAI = msg.sender === 'assistant';
             // Determine if this message is an "action", to display differently and perform immediately
             let isActionMode = false;
@@ -237,6 +280,8 @@ function AssistantPanel() {
             );
           })}
           {isTyping && <div className="message assistant-message typing-indicator">Typing...</div>}
+                    {/* keep view pinned to bottom when typing */}
+                    {isTyping && chatRef.current && (()=>{ chatRef.current.scrollTop = chatRef.current.scrollHeight; })()}
                   </div>
 
         <div className="chat-input-section">
@@ -272,7 +317,7 @@ function AssistantPanel() {
         </div>
         <div className="status-item">
           <span className="status-label">Connection:</span>
-          <span className="status-value" id="aiStatus">Initializing...</span>
+          <span className="status-value" id="aiStatus">{llmStatus==='connected' ? 'Active' : (llmStatus==='down' ? 'connection error . configure model' : 'Inactive')}</span>
         </div>
       </div>
 

@@ -16,7 +16,7 @@ import { getLtp } from "./mcpKiteApi";
 function App() {
   const [charts, setCharts] = useState({});
   const [data, setData] = useState({});
-  const [accessToken, setAccessToken] = useState("");
+  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('kite_access_token') || "");
   const refreshInterval = useRef(null);
   const isRefreshing = useRef(false);
 
@@ -70,10 +70,10 @@ function App() {
   const loadInitialData = async () => {
     if (!accessToken) {
       // Don't attempt unless logged in
-      document.getElementById('connectionStatus').innerHTML = '<span class="status-dot"></span>Login required';
+      const csEl1 = document.getElementById('connectionStatus'); if (csEl1) csEl1.innerHTML = '<span class="status-dot"></span>Login required';
       return;
     }
-    document.getElementById('connectionStatus').innerHTML = '<span class="status-dot"></span>Loading Data...';
+    { const csEl = document.getElementById('connectionStatus'); if (csEl) csEl.innerHTML = '<span class="status-dot"></span>Loading Data...'; }
     try {
       const promises = Object.keys(symbols).map(key => fetchMarketData(key, symbols[key].symbol));
       await Promise.all(promises);
@@ -228,33 +228,28 @@ function App() {
     return basePrices[key] || 100;
   };
 
-  const formatFallbackPrice = (key, price) => {
-    if (['bitcoin', 'ethereum', 'solana', 'nvidia', 'oracle', 'tesla'].includes(key)) {
-      return `$${price.toFixed(2)}`;
-    }
-    return price.toFixed(2);
-  };
 
   const updateConnectionStatus = (status) => {
     const statusElement = document.getElementById('connectionStatus');
+    if (!statusElement) return;
     const statusDot = statusElement.querySelector('.status-dot');
-    statusDot.className = 'status-dot';
+    if (statusDot) statusDot.className = 'status-dot';
 
     switch (status) {
       case 'connected':
         statusElement.innerHTML = '<span class="status-dot connected"></span>Connected';
-        document.getElementById('marketStatus').textContent = 'Active';
+        { const ms = document.getElementById('marketStatus'); if (ms) ms.textContent = 'Active'; }
         break;
       case 'connecting':
         statusElement.innerHTML = '<span class="status-dot"></span>Connecting...';
-        document.getElementById('marketStatus').textContent = 'Loading...';
+        { const ms = document.getElementById('marketStatus'); if (ms) ms.textContent = 'Loading...'; }
         break;
       case 'loading':
         statusElement.innerHTML = '<span class="status-dot"></span>Loading Data...';
         break;
       case 'error':
         statusElement.innerHTML = '<span class="status-dot error"></span>Demo Mode';
-        document.getElementById('marketStatus').textContent = 'Demo';
+        { const ms = document.getElementById('marketStatus'); if (ms) ms.textContent = 'Demo'; }
         break;
       default:
         break;
@@ -264,7 +259,7 @@ function App() {
   const updateLastRefreshTime = () => {
     const now = new Date();
     const timeString = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-    document.getElementById('lastUpdate').textContent = timeString;
+    { const lu = document.getElementById('lastUpdate'); if (lu) lu.textContent = timeString; }
   };
 
   // Function to register chart instances from child components
@@ -277,7 +272,7 @@ function App() {
   const isDragging = useRef(false);
 
   // Drag handlers
-  const handleDragStart = (e) => {
+  const handleDragStart = () => {
     isDragging.current = true;
     document.body.style.cursor = "col-resize";
   };
@@ -313,26 +308,36 @@ function App() {
         newsBanner={<NewsBanner />}
         loginControl={
           accessToken ?
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                background: "linear-gradient(135deg,#0ea5e9,#2563eb)",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "bold",
-                color: "#fff",
-                fontSize: "1.12em",
-                boxShadow: "0 1px 8px #0ea5e955"
-              }}
-              title="Logged in to Zerodha"
-            >
-              <MdAccountCircle size={26} style={{ opacity: 0.82, marginRight: 1 }} />
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  background: "linear-gradient(135deg,#0ea5e9,#2563eb)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  fontSize: "1.12em",
+                  boxShadow: "0 1px 8px #0ea5e955"
+                }}
+                title="Logged in to Zerodha"
+              >
+                <MdAccountCircle size={26} style={{ opacity: 0.82, marginRight: 1 }} />
+              </div>
+              <button
+                onClick={() => { setAccessToken(''); localStorage.removeItem('kite_access_token'); }}
+                className="btn btn--secondary btn--sm"
+                style={{padding:'8px 12px', borderRadius:8}}
+                title="Logout from Zerodha"
+              >
+                Logout
+              </button>
             </div>
             :
-            <KiteLogin onAccessToken={setAccessToken} />
+            <KiteLogin onAccessToken={(tok)=>{ localStorage.setItem('kite_access_token', tok); setAccessToken(tok); }} />
         }
       />
       <main
@@ -404,7 +409,7 @@ function App() {
             minHeight: 480,
             height: "100%"
           }}>
-            {selectedKeys.map((key, idx) => {
+            {selectedKeys.map((key) => {
               const sym = symbols[key];
               if (!sym) return null;
               const dataObj = data[key] || {};
