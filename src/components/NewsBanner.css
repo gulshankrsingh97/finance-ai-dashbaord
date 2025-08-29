@@ -186,12 +186,15 @@
   /* font-weight removed for normal text weight */
   color: #e0f2fb;
   letter-spacing: 0.012em;
-  line-height: 1.3;
+  line-height: 1.42;
   margin-top: 0.02em;
   margin-bottom: 0.01em;
-  padding: 0 0px 0 0;
-  white-space: nowrap;
-  overflow-wrap: anywhere;
+  padding: 0 1px 0 0;
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   text-overflow: ellipsis;
 }
 
