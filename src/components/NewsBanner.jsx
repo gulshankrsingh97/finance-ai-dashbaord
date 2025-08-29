@@ -168,7 +168,12 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
     return newsItems.slice(start, start + 2);
   };
 
-  const displayedNews = getDisplayedNews();
+  // Sort: bigger news (longer summary) comes first in the pair
+  const displayedRaw = getDisplayedNews();
+  const displayedNews =
+    displayedRaw.length === 2 && displayedRaw[0].summary && displayedRaw[1].summary
+      ? [...displayedRaw].sort((a, b) => b.summary.length - a.summary.length)
+      : displayedRaw;
 
   if (loading) {
     return (
@@ -202,7 +207,6 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
       <div className="news-cards-list" style={{ display: "flex", gap: "1.4em" }}>
         {displayedNews.map((item, idx) => (
           <div key={item.id || idx} className="news-card fade-news" style={{ display: "flex", alignItems: "center", gap: "0.7em", padding: "3px 0" }}>
-            <span className="news-bullet" />
             <span className="news-card-text" style={{ fontSize: "1.05em" }}>
               {item.url ? (
                 <a href={item.url} target="_blank" rel="noopener noreferrer">

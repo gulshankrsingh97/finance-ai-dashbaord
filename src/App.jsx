@@ -8,11 +8,12 @@ import NseMarketSnapshot from './components/NseMarketSnapshot';
 import KiteLogin from './components/KiteLogin';
 import NewsBanner from './components/NewsBanner';
 import './App.css';
+import { useIsMobile } from './hooks/useIsMobile';
 import 'chart.js/auto';
 import { Chart } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
-import { getLtp, getCryptoPrice, getCryptoHistory, getStockHistory, getFinnhubQuote, getFinnhubHistory } from "./mcpKiteApi";
+import { getLtp, getCryptoPrice, getFinnhubQuote } from "./mcpKiteApi";
 
 function isIndianMarketOpen(date) {
   // date: JS Date in local time (IST)
@@ -46,12 +47,28 @@ function isCryptoMarketOpen() {
 }
 
 function App() {
+  const isMobile = useIsMobile();
+
   const [charts, setCharts] = useState({});
   const [data, setData] = useState({});
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem('kite_access_token') || "");
   const [market, setMarket] = useState('crypto');
   const refreshInterval = useRef(null);
   const isRefreshing = useRef(false);
+
+  if (isMobile) {
+    return (
+      <div className="mobile-assistant-root">
+        <header className="mobile-assistant-header">Finance Assistant</header>
+        <main className="mobile-assistant-panel">
+          <AssistantPanel />
+        </main>
+        <footer className="mobile-assistant-footer">
+          Real-time market insights with FinanceGPT
+        </footer>
+      </div>
+    );
+  }
 
   // --- Symbol definitions ---
 

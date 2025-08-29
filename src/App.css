@@ -83,3 +83,33 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Mobile AssistantPanel-only styles */
+.mobile-assistant-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #131925;
+}
+.mobile-assistant-header,
+.mobile-assistant-footer {
+  text-align: center;
+  padding: 14px 10px;
+  color: #38bdf8;
+  background: #23272f;
+  font-weight: 600;
+  font-size: 1.1em;
+  letter-spacing: 0.02em;
+}
+.mobile-assistant-panel {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* inherit background for blend */
+}
+@media (min-width: 769px) {
+  .mobile-assistant-root {
+    display: none !important;
+  }
+}
