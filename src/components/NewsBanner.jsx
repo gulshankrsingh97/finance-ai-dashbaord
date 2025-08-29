@@ -5,11 +5,11 @@ import "./NewsBanner.css";
 const MARKETAUX_API_KEY = "VTbdpTTe3moshrcAu0gE6ooD85OhduqNhgGfLRJQ";
 const MARKETAUX_ALL_URL = "https://api.marketaux.com/v1/news/all";
 
-const DISPLAY_COUNT = 6; // Show 6 news items as requested
+const DISPLAY_COUNT = 6; // Always get 6, show 2 at a time, cycle 3 pairs
 
 const NewsBanner = forwardRef(function NewsBanner(props, ref) {
   const [newsItems, setNewsItems] = useState([]);
-  const [cycleStart, setCycleStart] = useState(0);
+  const [cycleIndex, setCycleIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,7 +30,8 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
       const data = await response.json();
       if (data.data && Array.isArray(data.data)) {
         const filteredNews = categorizeAndFilterNews(data.data);
-        setNewsItems(filteredNews);
+        setNewsItems(filteredNews.slice(0, DISPLAY_COUNT));
+        setCycleIndex(0);
       } else {
         throw new Error("Invalid API response structure");
       }
@@ -38,7 +39,8 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
     } catch (err) {
       console.error("Error fetching news:", err);
       setError(err.message);
-      setNewsItems(getMockNews());
+      setNewsItems(getMockNews().slice(0, DISPLAY_COUNT));
+      setCycleIndex(0);
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
     refresh: fetchLiveNews,
   }));
 
-  // Categorize news into crypto, Indian market, and US stocks
+  // Categorize/filter max 6 news (prefer crypto/indian)
   const categorizeAndFilterNews = (rawNews) => {
     const crypto = [];
     const indian = [];
@@ -84,21 +86,22 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
         us.push(displayObj);
       }
     });
+    // Pick max DISPLAY_COUNT total: up to 2 crypto, 2 indian, then fill with US
     const finalNews = [];
     finalNews.push(...crypto.slice(0, 2));
     finalNews.push(...indian.slice(0, 2));
     const remaining = DISPLAY_COUNT - finalNews.length;
     finalNews.push(...us.slice(0, remaining));
     if (finalNews.length < DISPLAY_COUNT) {
+      // Take the next in order, even if duplicate type, to always yield DISPLAY_COUNT
       const allNews = [...crypto, ...indian, ...us];
       const needed = DISPLAY_COUNT - finalNews.length;
-      const additional = allNews.filter((item) => !finalNews.includes(item)).slice(0, needed);
+      const additional = allNews.slice(0, needed);
       finalNews.push(...additional);
     }
     return finalNews.slice(0, DISPLAY_COUNT);
   };
 
-  // Generate a concise 1-sentence summary from an article object
   const generateSummarySentence = (article) => {
     let summary =
       article.description ||
@@ -116,14 +119,12 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
       summary = summary.slice(0, 137) + "...";
     }
 
-    // Fallback for empty
     if (!summary || summary.length < 10) {
       summary = (article.title || "Market update") + ".";
     }
     return summary;
   };
 
-  // Format news item for display
   const formatNewsItem = (article, summaryOverride) => {
     return {
       id: article.uuid || article.id,
@@ -134,41 +135,37 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
     };
   };
 
-  // Fallback mock news
   const getMockNews = () => [
     { id: 1, summary: "RBI keeps repo rate unchanged: Markets rally to new highs." },
     { id: 2, summary: "Reliance, TCS, Infosys lead NIFTY gains amid global cues." },
     { id: 3, summary: "HDFC Bank hits 52-week high as banking sector rallies." },
     { id: 4, summary: "Bitcoin surges past $65K as crypto market shows strength." },
-    { id: 5, summary: "Ethereum network upgrade boosts DeFi adoption rates." },
-    { id: 6, summary: "Fed signals dovish stance: Tech stocks gain momentum." },
+    { id: 5, summary: "Fed signals dovish stance: Tech stocks gain momentum." },
+    { id: 6, summary: "Ethereum upgrade boosts DeFi adoption rates." },
   ];
 
-  // Fetch news on component mount and refresh every 5 minutes
+  // On mount and every 5 min, refresh news
   useEffect(() => {
     fetchLiveNews();
     const newsRefreshInterval = setInterval(fetchLiveNews, 5 * 60 * 1000);
     return () => clearInterval(newsRefreshInterval);
   }, []);
 
-  // Cycle through news every 4 seconds
+  // Cycle every 10s, show 2 news at a time (index 0/1, 2/3, 4/5)
   useEffect(() => {
-    if (newsItems.length === 0) return;
+    if (newsItems.length < 2) return;
+    const totalCycles = Math.ceil(newsItems.length / 2);
     const cycleInterval = setInterval(() => {
-      setCycleStart((start) => (start + DISPLAY_COUNT) % newsItems.length);
-    }, 4000);
+      setCycleIndex(idx => (idx + 1) % totalCycles);
+    }, 10000);
     return () => clearInterval(cycleInterval);
   }, [newsItems]);
 
-  // Get current displayed news
+  // Current pair (2 items per view)
   const getDisplayedNews = () => {
     if (newsItems.length === 0) return [];
-    const displayed = [];
-    for (let i = 0; i < DISPLAY_COUNT && i < newsItems.length; i++) {
-      const index = (cycleStart + i) % newsItems.length;
-      displayed.push(newsItems[index]);
-    }
-    return displayed;
+    const start = cycleIndex * 2;
+    return newsItems.slice(start, start + 2);
   };
 
   const displayedNews = getDisplayedNews();
@@ -202,11 +199,11 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
-      <ul className="news-cards-list">
+      <div className="news-cards-list" style={{ display: "flex", gap: "1.4em" }}>
         {displayedNews.map((item, idx) => (
-          <li key={item.id || idx} className="news-card fade-news">
+          <div key={item.id || idx} className="news-card fade-news" style={{ display: "flex", alignItems: "center", gap: "0.7em", padding: "3px 0" }}>
             <span className="news-bullet" />
-            <span className="news-card-text">
+            <span className="news-card-text" style={{ fontSize: "1.05em" }}>
               {item.url ? (
                 <a href={item.url} target="_blank" rel="noopener noreferrer">
                   {item.summary}
@@ -215,9 +212,9 @@ const NewsBanner = forwardRef(function NewsBanner(props, ref) {
                 item.summary
               )}
             </span>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 });
