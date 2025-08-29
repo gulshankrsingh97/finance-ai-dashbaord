@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Chart } from 'chart.js';
 import { FiBarChart } from 'react-icons/fi';
 
-function ChartContainer({ id, title, color, price, change, changePercent, statusText, registerChart, chartData, symbol, tradingViewSymbol }) {
+function ChartContainer({ id, title, color, price, change, changePercent, statusText, registerChart, chartData, tradingViewSymbol, tradingViewMarket }) {
   const canvasRef = useRef(null);
   const chartInstance = useRef(null);
 
@@ -43,9 +43,10 @@ function ChartContainer({ id, title, color, price, change, changePercent, status
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
+        chartInstance.current = null;
       }
     };
-  }, [color]);
+  }, [color, id, registerChart]);
 
   useEffect(() => {
     if (chartInstance.current && chartData) {
@@ -60,9 +61,9 @@ function ChartContainer({ id, title, color, price, change, changePercent, status
       <div className="chart-header" style={{display: 'flex', alignItems: 'center', gap: '0.75em'}}>
         <h3 style={{margin: 0, display: 'flex', alignItems: 'center', gap: '0.5em'}}>
           {title}
-          {tradingViewSymbol &&
+          {tradingViewSymbol && (
             <a
-              href={`https://www.tradingview.com/symbols/NSE-${tradingViewSymbol}/`}
+              href={`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tradingViewSymbol)}`}
               target="_blank"
               rel="noopener noreferrer"
               title={`Open ${tradingViewSymbol} in TradingView`}
@@ -88,7 +89,7 @@ function ChartContainer({ id, title, color, price, change, changePercent, status
               <FiBarChart size={19} style={{ marginTop: "-1px" }} />
               <span style={{ fontWeight: 500 }}>Chart</span>
             </a>
-          }
+          )}
         </h3>
         <div className="chart-stats">
           <span className="price">{typeof price === "number" ? price.toFixed(2) : "--"}</span>

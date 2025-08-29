@@ -9,6 +9,7 @@ const app = express();
 const PORT = 5050;
 
 app.use(cors());
+app.use(express.json());
 
 console.log('=== SERVER STARTUP DEBUG ===');
 console.log('KITE_API_KEY:', process.env.KITE_API_KEY);
@@ -238,8 +239,8 @@ app.get('/kite/callback', async (req, res) => {
 // Add this endpoint to manually convert request_token to access_token
 app.post("/convert-token", async (req, res) => {
   try {
-    // Use the request_token from your browser URL
-    const requestToken = "mjoeR6Vq0deHGe9R7vZzoxdM2WOV76N1"; // From your browser
+    // Use the request_token from frontend request body
+    const requestToken = req.body?.request_token;
     
     const apiKey = process.env.KITE_API_KEY;
     const secret = process.env.KITE_API_SECRET;

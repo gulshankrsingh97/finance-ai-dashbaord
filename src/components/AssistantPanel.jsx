@@ -36,25 +36,37 @@ How can I assist you today?
 
     const testConnection = async () => {
         try {
-            if (modelProvider === 'cloud') {
-                setTestResult('Cloud test: placeholder. Configure cloud backend to enable live test.');
-                setLlmStatus('unknown');
-                return;
-            }
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 1500);
-            const resp = await fetch('http://localhost:3001/health', { signal: controller.signal });
+            let resp;
+            if (modelProvider === 'cloud') {
+                resp = await fetch('http://localhost:3002/health', { signal: controller.signal });
+            } else {
+                resp = await fetch('http://localhost:3001/health', { signal: controller.signal });
+            }
             clearTimeout(timeout);
             if (resp.ok) {
                 const data = await resp.json().catch(() => ({}));
-                setTestResult('✅ Local AI reachable: ' + (data?.ai_backend || 'ok'));
+                if (modelProvider === 'cloud') {
+                    setTestResult('✅ Gemini Cloud reachable');
+                } else {
+                    setTestResult('✅ Local AI reachable: ' + (data?.ai_backend || 'ok'));
+                }
                 setLlmStatus('connected');
             } else {
-                setTestResult('❌ Local AI not reachable: HTTP ' + resp.status);
+                if (modelProvider === 'cloud') {
+                    setTestResult('❌ Gemini Cloud not reachable: HTTP ' + resp.status);
+                } else {
+                    setTestResult('❌ Local AI not reachable: HTTP ' + resp.status);
+                }
                 setLlmStatus('down');
             }
         } catch (e) {
-            setTestResult('❌ Local AI test error: ' + (e?.message || String(e)));
+            if (modelProvider === 'cloud') {
+                setTestResult('❌ Gemini Cloud test error: ' + (e?.message || String(e)));
+            } else {
+                setTestResult('❌ Local AI test error: ' + (e?.message || String(e)));
+            }
             setLlmStatus('down');
         }
     };

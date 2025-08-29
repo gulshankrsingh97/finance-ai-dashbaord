@@ -8,7 +8,15 @@ export default defineConfig({
     proxy: {
       // Proxy backend API calls to Express server
       '/convert-token': 'http://localhost:5055',
-      '/mcp': 'http://localhost:5055'
+      '/mcp': 'http://localhost:5055',
+      '/crypto-price': 'http://localhost:5050',
+      '/crypto-history': 'http://localhost:5050',
+      '/yahoo': 'http://localhost:5050',
+      '/yahoo/stock-price': 'http://localhost:5050',
+      '/yahoo/stock-history': 'http://localhost:5050',
+      '/delta': 'http://localhost:5050',
+      '/delta/auth-url': 'http://localhost:5050',
+      '/delta/callback': 'http://localhost:5050'
     }
   }
 })
